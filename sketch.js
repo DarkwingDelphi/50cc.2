@@ -1,126 +1,163 @@
 
-let carImage;
+// 50cc v1.5.4
+
 let player;
 let doors = [];
+let score = 0;
 let gameOver = false;
-let miles = 0;
-let doorTimer = 0;
-let backgroundElements = [];
-let milestoneInterval = 100;
-let milestoneCount = 0;
-let bgTypes = ["circles", "lines", "waves"];
-let currentBgTypeIndex = 0;
-let bgTheme = [];
-let nextThemeSwitch = milestoneInterval;
+let version = "v1.5.4";
+let bgElements = [];
+let carImage;
+let doorGhosts = [];
 
 function preload() {
-  carImage = loadImage("https://upload.wikimedia.org/wikipedia/commons/5/59/Go-kart_racing_official_2.svg");
+  carImage = loadImage('https://darkwingdelphi.github.io/50cc/assets/c50c.png');
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  player = {
-    x: width / 2,
-    y: height - 100,
-    targetX: width / 2
-  };
-  bgTheme = [random(bgTypes)];
+  player = new Player();
 }
 
 function draw() {
   background(0);
 
-  // Background logic
-  drawProceduralBackground();
-
-  // Player
-  imageMode(CENTER);
-  player.x = lerp(player.x, player.targetX, 0.1);
-  image(carImage, player.x, player.y, 60, 60);
-  stroke(255);
-  noFill();
-  rectMode(CENTER);
-  rect(player.x, player.y, 60, 60);
-
   if (!gameOver) {
-    miles += deltaTime / 100;
-    doorTimer += deltaTime;
+    score += deltaTime / 100;
 
-    if (doorTimer > 1500) {
-      doors.push({ x: random(50, width - 50), y: -20 });
-      doorTimer = 0;
+    updateBackground();
+    for (let e of bgElements) {
+      e.display();
+    }
+
+    player.update();
+    player.display();
+
+    if (frameCount % 60 === 0) {
+      doors.push(new Door());
     }
 
     for (let i = doors.length - 1; i >= 0; i--) {
-      let d = doors[i];
-      d.y += 3;
-      fill((i * 30) % 255, 100, 100);
-      rect(d.x, d.y, 30, 30);
-      stroke(255);
-      noFill();
-      rect(d.x, d.y, 30, 30);
+      doors[i].update();
+      doors[i].display();
 
-      if (dist(player.x, player.y, d.x, d.y) < 45) {
+      if (doors[i].hits(player)) {
         gameOver = true;
       }
 
-      if (d.y > height + 30) {
+      if (doors[i].offscreen()) {
         doors.splice(i, 1);
       }
     }
 
-    if (miles > milestoneCount * milestoneInterval) {
-      milestoneCount++;
-      let type = random(bgTypes);
-      bgTheme.push(type);
-    }
+    fill(255);
+    textSize(24);
+    text(`Miles: ${nf(score, 1, 1)}`, 20, 30);
+    text(version, 20, 60);
   } else {
-    textAlign(CENTER, CENTER);
     fill(255);
     textSize(32);
-    text("Game Over - Press Any Key", width / 2, height / 2);
+    textAlign(CENTER, CENTER);
+    text(`You touched the door after ${nf(score, 1, 1)} miles`, width / 2, height / 2);
   }
+}
 
-  fill(255);
-  textSize(16);
-  text("Miles: " + int(miles), width - 100, 20);
+function updateBackground() {
+  if (floor(score) % 100 === 0 && !bgElements.some(e => e.milestone === floor(score))) {
+    bgElements.push(new BackgroundElement(floor(score)));
+  }
 }
 
 function keyPressed() {
-  if (gameOver) {
-    gameOver = false;
-    miles = 0;
-    doors = [];
-    milestoneCount = 0;
-    bgTheme = [random(bgTypes)];
+  if (keyCode === LEFT_ARROW) {
+    player.move(-1);
+  } else if (keyCode === RIGHT_ARROW) {
+    player.move(1);
+  } else if (gameOver) {
+    resetGame();
   }
-  if (keyCode === LEFT_ARROW) player.targetX -= 50;
-  if (keyCode === RIGHT_ARROW) player.targetX += 50;
 }
 
-function drawProceduralBackground() {
-  for (let i = 0; i < milestoneCount; i++) {
-    let t = bgTheme[i];
-    let intensity = constrain((miles - i * milestoneInterval) / milestoneInterval, 0, 1);
+function resetGame() {
+  gameOver = false;
+  score = 0;
+  player = new Player();
+  doors = [];
+  bgElements = [];
+}
 
-    if (t === "circles") {
-      noStroke();
-      fill(0, 0, 255, 50 * intensity);
-      ellipse(width / 2, height / 2, 200 * intensity);
-    } else if (t === "lines") {
-      stroke(255, 0, 0, 50 * intensity);
-      for (let j = 0; j < 10; j++) {
-        let x = map(j, 0, 10, 0, width);
-        line(x, 0, x, height);
-      }
-    } else if (t === "waves") {
-      noFill();
-      stroke(0, 255, 0, 50 * intensity);
-      beginShape();
-      for (let x = 0; x < width; x += 10) {
-        vertex(x, height / 2 + sin(x * 0.01 + frameCount * 0.05) * 50 * intensity);
-      }
-      endShape();
-    }
+class Player {
+  constructor() {
+    this.x = width / 2;
+    this.y = height - 100;
+    this.w = 60;
+    this.h = 60;
+    this.speed = 10;
+    this.targetX = this.x;
+  }
+
+  move(dir) {
+    this.targetX += dir * 100;
+  }
+
+  update() {
+    this.x = lerp(this.x, this.targetX, 0.1);
+  }
+
+  display() {
+    imageMode(CENTER);
+    image(carImage, this.x, this.y, this.w, this.h);
+    noFill();
+    stroke(255);
+    rectMode(CENTER);
+    rect(this.x, this.y, this.w, this.h);
+  }
+}
+
+class Door {
+  constructor() {
+    this.x = random(50, width - 50);
+    this.y = -60;
+    this.w = random(30, 80);
+    this.h = random(60, 120);
+    this.speed = random(3, 6);
+  }
+
+  update() {
+    this.y += this.speed;
+  }
+
+  display() {
+    fill(200, 0, 0, 200);
+    rect(this.x, this.y, this.w, this.h);
+  }
+
+  hits(p) {
+    return !(p.x + p.w / 2 < this.x - this.w / 2 ||
+             p.x - p.w / 2 > this.x + this.w / 2 ||
+             p.y + p.h / 2 < this.y - this.h / 2 ||
+             p.y - p.h / 2 > this.y + this.h / 2);
+  }
+
+  offscreen() {
+    return this.y > height + this.h;
+  }
+}
+
+class BackgroundElement {
+  constructor(milestone) {
+    this.milestone = milestone;
+    this.x = random(width);
+    this.y = random(height);
+    this.r = 0;
+    this.opacity = 0;
+  }
+
+  display() {
+    this.r += 0.5;
+    this.opacity = min(255, this.opacity + 1);
+    noFill();
+    stroke(100, 100, 255, this.opacity);
+    ellipse(this.x, this.y, this.r);
   }
 }
