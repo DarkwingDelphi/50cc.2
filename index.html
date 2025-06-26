@@ -1,13 +1,32 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
     <meta charset="UTF-8" />
-    <title>50cc</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.2/lib/p5.min.js"></script>
+    <title>50cc - v1.5.6</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: black;
+        color: white;
+        font-family: monospace;
+      }
+      #version {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        z-index: 10;
+        font-size: 12px;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 2px 4px;
+      }
+    </style>
   </head>
   <body>
+    <div id="version">v1.5.6</div>
     <script src="sketch.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
   </body>
 </html>
