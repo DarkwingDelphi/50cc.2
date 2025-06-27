@@ -12,23 +12,19 @@ function setup() {
 function draw() {
   background(0);
 
-  // Distance counter
   distance += 0.02;
   fill(255);
   textSize(16);
   text("Distance: " + int(distance) + " miles", 10, 20);
   text(version, 10, 40);
 
-  // Player
   player.update();
   player.show();
 
-  // Spawn doors
   if (frameCount % 60 === 0) {
     doors.push(new Door());
   }
 
-  // Update doors
   for (let i = doors.length - 1; i >= 0; i--) {
     doors[i].update();
     doors[i].show();
@@ -44,7 +40,6 @@ function draw() {
     }
   }
 
-  // Background placeholder: fade in grayscale every 100 miles
   let bgIntensity = map(distance % 100, 0, 100, 0, 255);
   fill(bgIntensity, 10);
   rect(0, 0, width, height);
@@ -66,11 +61,7 @@ class Player {
     this.size = 20;
   }
 
-  update() {
-    if (touchX !== null) {
-      this.x = touchX;
-    }
-  }
+  update() {}
 
   show() {
     fill(255);
