@@ -1,95 +1,110 @@
-
 let player;
-let speed = 5;
-let distance = 0;
-let gameOver = false;
 let doors = [];
-let bgHue = 0;
-let version = "v1.6.0";
+let distance = 0;
+let version = "v1.6.1";
+let touchX = null;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  player = createVector(width / 2, height - 60);
-  textAlign(CENTER, CENTER);
-  textSize(24);
-  colorMode(HSB, 360, 100, 100);
+  player = new Player();
 }
 
 function draw() {
-  if (gameOver) {
-    background(0);
-    fill(0, 0, 100);
-    text("You touched the d00r", width / 2, height / 2);
-    text("Tap to restart", width / 2, height / 2 + 40);
-    return;
+  background(0);
+
+  // Distance counter
+  distance += 0.02;
+  fill(255);
+  textSize(16);
+  text("Distance: " + int(distance) + " miles", 10, 20);
+  text(version, 10, 40);
+
+  // Player
+  player.update();
+  player.show();
+
+  // Spawn doors
+  if (frameCount % 60 === 0) {
+    doors.push(new Door());
   }
 
-  drawBackground();
-  drawPlayer();
-  drawDoors();
-  updateGame();
-
-  fill(0, 0, 100);
-  text("Distance: " + distance + " miles", width / 2, 30);
-  text(version, width - 60, height - 30);
-}
-
-function drawBackground() {
-  bgHue = (bgHue + 0.2) % 360;
-  background(bgHue, 80, 30);
-}
-
-function drawPlayer() {
-  fill(60, 100, 100);
-  text("c50c", player.x, player.y);
-}
-
-function drawDoors() {
-  fill(300, 100, 100);
+  // Update doors
   for (let i = doors.length - 1; i >= 0; i--) {
-    text("d00r", doors[i].x, doors[i].y);
-    doors[i].y += speed;
-
-    if (dist(player.x, player.y, doors[i].x, doors[i].y) < 20) {
-      gameOver = true;
+    doors[i].update();
+    doors[i].show();
+    if (doors[i].hits(player)) {
+      noLoop();
+      textSize(32);
+      textAlign(CENTER, CENTER);
+      fill(255, 0, 0);
+      text("You touched the d00r!", width / 2, height / 2);
     }
-
-    if (doors[i].y > height + 40) {
+    if (doors[i].offscreen()) {
       doors.splice(i, 1);
     }
   }
+
+  // Background placeholder: fade in grayscale every 100 miles
+  let bgIntensity = map(distance % 100, 0, 100, 0, 255);
+  fill(bgIntensity, 10);
+  rect(0, 0, width, height);
 }
 
-function updateGame() {
-  if (frameCount % 60 === 0) {
-    distance++;
-    if (distance % 100 === 0) {
-      bgHue = (bgHue + 60) % 360;
-    }
-    if (random(1) < 0.5) {
-      doors.push(createVector(random(50, width - 50), -20));
-    }
-  }
-}
-
-function mousePressed() {
-  if (gameOver) {
-    resetGame();
-  } else {
-    player.x += 40;
-    if (player.x > width) player.x = width;
-  }
-}
-
-function touchStarted() {
-  mousePressed();
+function touchMoved() {
+  player.x = mouseX;
   return false;
 }
 
-function resetGame() {
-  player = createVector(width / 2, height - 60);
-  distance = 0;
-  doors = [];
-  gameOver = false;
-  bgHue = 0;
+function mouseDragged() {
+  player.x = mouseX;
+}
+
+class Player {
+  constructor() {
+    this.x = width / 2;
+    this.y = height - 50;
+    this.size = 20;
+  }
+
+  update() {
+    if (touchX !== null) {
+      this.x = touchX;
+    }
+  }
+
+  show() {
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(16);
+    text("c50c", this.x, this.y);
+  }
+}
+
+class Door {
+  constructor() {
+    this.x = random(width);
+    this.y = -20;
+    this.size = random(20, 50);
+    this.hue = random(360);
+  }
+
+  update() {
+    this.y += 3;
+  }
+
+  show() {
+    colorMode(HSB, 360, 100, 100);
+    fill(this.hue, 80, 100);
+    textAlign(CENTER, CENTER);
+    textSize(this.size / 2);
+    text("d00r", this.x, this.y);
+  }
+
+  hits(player) {
+    return dist(this.x, this.y, player.x, player.y) < this.size / 2;
+  }
+
+  offscreen() {
+    return this.y > height + 20;
+  }
 }
